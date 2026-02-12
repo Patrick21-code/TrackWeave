@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrackWeave</title>
+    <title>TrackWeave - The social network for music lovers</title>
     <link rel="stylesheet" href="open.css" />
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <img src="" alt="TrackWeave Logo" class="logo-img" />
+                <div class="logo-img"></div>
+                <span style="color: #fff; font-weight: 600; font-size: 18px;">TrackWeave</span>
             </div>
             <div class="nav-links">
                 <a href="#" class="nav-link">Artists</a>
@@ -25,11 +26,91 @@
     
     <div class="hero">
         <div class="hero-content">
-            <img src="" alt="Music visualization" class="hero-img" />
-            <h1 class="hero-title">Explore the meaning of the music that you listened to!</h1>
-            <p class="hero-subtitle">Learn more about them</p>
-            <button class="cta-button">Get started - it's free!</button>
-            <p class="hero-tagline">The social network for music lovers.</p>
+            <p>YOUR MUSIC, YOUR STORY</p>
+            <h1 class="hero-title">Track music you've listened to. Save those you want to explore.</h1>
+            <p class="hero-subtitle">Tell your friends what's good.</p>
+            <button class="cta-button">Get started — it's free!</button>
+            <p class="hero-tagline">The social network for music lovers. Also available on <a href="#">iOS</a> and <a href="#">Android</a>.</p>
+        </div>
+    </div>
+
+    <!-- Carousel Section -->
+    <div class="carousel-section">
+        <div class="carousel-container">
+            <div class="album-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #93734f 0%, #c19a6b 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #3d5a4c 0%, #5a8068 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #6b8e7e 0%, #8eb99c 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #8b6478 0%, #a67c89 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #4a5568 0%, #6b7a90 100%);"></div>
+            <!-- Duplicate for seamless loop -->
+            <div class="album-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #93734f 0%, #c19a6b 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #3d5a4c 0%, #5a8068 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #6b8e7e 0%, #8eb99c 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #8b6478 0%, #a67c89 100%);"></div>
+            <div class="album-cover" style="background: linear-gradient(135deg, #4a5568 0%, #6b7a90 100%);"></div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2 class="features-title">TrackWeave lets you...</h2>
+        <div class="features-container">
+            <div class="feature-card">
+                <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <h3>Log & Review</h3>
+                <p>Keep track of every song and album you've listened to. Write and share your reviews.</p>
+            </div>
+            <div class="feature-card">
+                <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                <h3>Show Love</h3>
+                <p>Like your favorite tracks, albums, lists and reviews from friends and the community.</p>
+            </div>
+            <div class="feature-card">
+                <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                </svg>
+                <h3>Discover</h3>
+                <p>Explore the meaning behind lyrics. Uncover the stories that shaped the music you love.</p>
+            </div>
+            <div class="feature-card">
+                <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <h3>Connect</h3>
+                <p>Follow friends and tastemakers. See what they're listening to and share your diary.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <div class="stats-container">
+            <div class="stat-item">
+                <span class="stat-number">2,847,291</span>
+                <span class="stat-label">Songs Tracked</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">412,038</span>
+                <span class="stat-label">Members</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">1,203,847</span>
+                <span class="stat-label">Reviews Written</span>
+            </div>
         </div>
     </div>
 
@@ -41,7 +122,6 @@
                 <a href="#" class="footer-link">API</a>
                 <a href="#" class="footer-link">Contact</a>
             </div>
-            <div class="footer-divider"></div>
             <div class="footer-icons">
                 <a href="#" class="social-icon" aria-label="Instagram">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
