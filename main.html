@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrackWeave - The social network for music lovers</title>
-    
-    <link rel="stylesheet" href="./src/output.css" />
-    
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes scroll {
             0% { transform: translateX(0); }
@@ -18,6 +16,10 @@
     </style>
 </head>
 <body class="m-0 p-0 font-sans bg-[#14181c] text-[#9ab] leading-relaxed">
+    <!-- Search Results Dropdown -->
+    <div id="searchResults" class="hidden fixed top-[72px] left-1/2 -translate-x-1/2 w-full max-w-[500px] bg-[#1e2329] border border-[#2c3440] rounded-lg shadow-lg z-[999] max-h-[400px] overflow-y-auto mx-4">
+        <!-- Results will be inserted here -->
+    </div>
     <!-- Navbar -->
     <nav class="bg-[#1e2329] border-b border-[#2c3440] py-4 sticky top-0 z-[1000]">
         <div class="max-w-[1400px] mx-auto px-8 flex items-center justify-between gap-8 flex-wrap md:flex-nowrap">
@@ -33,7 +35,7 @@
                 <a href="#" class="bg-[#00e054] text-[#14181c] no-underline text-sm font-semibold py-2 px-5 rounded-md hover:bg-[#00ff5e] transition-colors duration-200">Create Account</a>
             </div>
             <div class="flex-1 max-w-[500px] w-full order-3 md:order-none">
-                <input type="text" placeholder="Search for songs, artists, albums..." class="w-full py-2.5 px-4 bg-[#2c3440] border border-[#456] rounded-md text-white text-sm placeholder:text-[#678] focus:outline-none focus:border-[#00e054] transition-colors duration-200" />
+                <input type="text" id="searchInput" placeholder="Search for artists, albums..." class="w-full py-2.5 px-4 bg-[#2c3440] border border-[#456] rounded-md text-white text-sm placeholder:text-[#678] focus:outline-none focus:border-[#00e054] transition-colors duration-200" autocomplete="off" />
             </div>
         </div>
     </nav>
@@ -45,7 +47,7 @@
             <h1 class="text-white text-5xl md:text-[3.5rem] font-bold leading-tight mb-4">Track music you've listened to. Save those you want to explore.</h1>
             <p class="text-[#9ab] text-xl mb-8">Tell your friends what's good.</p>
             <button class="bg-[#00e054] text-[#14181c] border-none py-4 px-10 text-base font-semibold rounded-md cursor-pointer hover:bg-[#00ff5e] hover:-translate-y-0.5 transition-all duration-200 mb-4">Get started — it's free!</button>
-            
+            <p class="text-[#678] text-sm">The social network for music lovers. Also available on <a href="#" class="text-[#00e054] no-underline hover:underline">iOS</a> and <a href="#" class="text-[#00e054] no-underline hover:underline">Android</a>.</p>
         </div>
     </div>
 
@@ -175,5 +177,184 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        // Deezer API configuration (no API key required!)
+        const DEEZER_API_URL = 'https://api.deezer.com';
+        const CORS_PROXY = 'https://corsproxy.io/?'; // Using CORS proxy since Deezer doesn't have CORS enabled
+
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout;
+
+        // Debounced search function
+        function performSearch(query) {
+            clearTimeout(searchTimeout);
+            
+            if (!query || query.trim() === '') {
+                searchResults.classList.add('hidden');
+                return;
+            }
+
+            // Show loading state
+            searchResults.innerHTML = `
+                <div class="p-4 text-center text-[#678]">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#00e054]"></div>
+                    <p class="mt-2">Searching...</p>
+                </div>
+            `;
+            searchResults.classList.remove('hidden');
+
+            // Debounce API calls
+            searchTimeout = setTimeout(async () => {
+                await fetchResults(query);
+            }, 300);
+        }
+
+        // Fetch results from Deezer API
+        async function fetchResults(query) {
+            try {
+                // Search for both artists and albums in parallel
+                const [artistsData, albumsData] = await Promise.all([
+                    searchArtists(query),
+                    searchAlbums(query)
+                ]);
+
+                const artists = artistsData?.data || [];
+                const albums = albumsData?.data || [];
+
+                displayResults(artists, albums, query);
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = `
+                    <div class="p-4 text-center text-red-400">
+                        <p>Error searching. Please try again.</p>
+                        <p class="text-sm text-[#678] mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Search for artists
+        async function searchArtists(query) {
+            const url = `${CORS_PROXY}${encodeURIComponent(`${DEEZER_API_URL}/search/artist?q=${encodeURIComponent(query)}&limit=5`)}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch artists');
+            return await response.json();
+        }
+
+        // Search for albums
+        async function searchAlbums(query) {
+            const url = `${CORS_PROXY}${encodeURIComponent(`${DEEZER_API_URL}/search/album?q=${encodeURIComponent(query)}&limit=5`)}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch albums');
+            return await response.json();
+        }
+
+        // Display results function
+        function displayResults(artists, albums, query) {
+            if (artists.length === 0 && albums.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="p-4 text-center text-[#678]">
+                        No results found for "${query}"
+                    </div>
+                `;
+                searchResults.classList.remove('hidden');
+                return;
+            }
+
+            let html = '';
+
+            // Display Artists
+            if (artists.length > 0) {
+                html += '<div class="border-b border-[#2c3440]">';
+                html += '<div class="px-4 py-2 text-xs font-semibold text-[#678] uppercase tracking-wider">Artists</div>';
+                artists.forEach(artist => {
+                    const fans = artist.nb_fan ? artist.nb_fan.toLocaleString() : 'N/A';
+                    const imageUrl = artist.picture_medium || artist.picture || '';
+                    
+                    html += `
+                        <a href="${artist.link || '#'}" target="_blank" class="flex items-center gap-3 px-4 py-3 hover:bg-[#2c3440] transition-colors duration-200 border-b border-[#2c3440]/50 last:border-0">
+                            <div class="w-10 h-10 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                ${imageUrl ? 
+                                    `<img src="${imageUrl}" alt="${artist.name}" class="w-full h-full object-cover" crossorigin="anonymous" />` :
+                                    `<svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                    </svg>`
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-white font-medium truncate">${artist.name}</div>
+                                <div class="text-[#678] text-sm truncate">${fans} fans • ${artist.nb_album || 0} albums</div>
+                            </div>
+                        </a>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Display Albums
+            if (albums.length > 0) {
+                html += '<div>';
+                html += '<div class="px-4 py-2 text-xs font-semibold text-[#678] uppercase tracking-wider">Albums</div>';
+                albums.forEach(album => {
+                    const imageUrl = album.cover_medium || album.cover || '';
+                    
+                    html += `
+                        <a href="${album.link || '#'}" target="_blank" class="flex items-center gap-3 px-4 py-3 hover:bg-[#2c3440] transition-colors duration-200 border-b border-[#2c3440]/50 last:border-0">
+                            <div class="w-10 h-10 bg-gradient-to-br from-[#93734f] to-[#c19a6b] rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                ${imageUrl ? 
+                                    `<img src="${imageUrl}" alt="${album.title}" class="w-full h-full object-cover" crossorigin="anonymous" />` :
+                                    `<svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
+                                        <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                    </svg>`
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-white font-medium truncate">${album.title}</div>
+                                <div class="text-[#678] text-sm truncate">${album.artist?.name || 'Unknown Artist'}</div>
+                            </div>
+                        </a>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            searchResults.innerHTML = html;
+            searchResults.classList.remove('hidden');
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', (e) => {
+            performSearch(e.target.value);
+        });
+
+        searchInput.addEventListener('focus', (e) => {
+            if (e.target.value.trim() !== '') {
+                performSearch(e.target.value);
+            }
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+
+        // Prevent search results from closing when clicking inside
+        searchResults.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Handle keyboard navigation
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchResults.classList.add('hidden');
+                searchInput.blur();
+            }
+        });
+    </script>
 </body>
 </html>
