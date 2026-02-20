@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — TrackWeave</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+    body { font-family: 'DM Sans', sans-serif; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes float  { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-10px) rotate(2deg); } }
+
+    .fade-up  { animation: fadeUp .55s ease both; }
+    .delay-1  { animation-delay: .1s; }
+    .delay-2  { animation-delay: .2s; }
+    .delay-3  { animation-delay: .3s; }
+    .float-el { animation: float 6s ease-in-out infinite; }
+    .float-el:nth-child(2) { animation-delay:-2s; }
+    .float-el:nth-child(3) { animation-delay:-4s; }
+
+    .field {
+      background:#1e2329; border:1.5px solid #2c3440; color:#fff;
+      border-radius:10px; padding:13px 16px; width:100%; font-size:14px;
+      outline:none; transition:border-color .2s,box-shadow .2s;
+    }
+    .field:focus  { border-color:#00e054; box-shadow:0 0 0 3px rgba(0,224,84,.12); }
+    .field.err    { border-color:#f87171; box-shadow:0 0 0 3px rgba(248,113,113,.12); }
+    .field::placeholder { color:#456; }
+
+    .btn {
+      background:#00e054; color:#14181c; font-weight:600; border:none;
+      border-radius:10px; padding:14px; width:100%; font-size:15px;
+      cursor:pointer; transition:background .2s,transform .15s,box-shadow .2s;
+    }
+    .btn:hover   { background:#00ff5e; transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,224,84,.3); }
+    .btn:active  { transform:none; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+
+    .glass { background:rgba(30,35,41,.88); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.06); }
+
+    .strength-bar { height:4px; border-radius:2px; transition:width .3s,background .3s; }
+
+    .req { display:flex; align-items:center; gap:6px; font-size:12px; color:#456; transition:color .2s; }
+    .req.ok { color:#00e054; }
+    .req-dot { width:6px; height:6px; border-radius:50%; background:#456; flex-shrink:0; transition:background .2s; }
+    .req.ok .req-dot { background:#00e054; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative"
+      style="background:radial-gradient(circle at 30% 70%,rgba(0,224,84,.06) 0%,transparent 50%),radial-gradient(circle at 70% 20%,rgba(0,224,84,.04) 0%,transparent 40%),#14181c;">
+
+  <!-- Decorative floating cards -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" style="z-index:0">
+    <div class="float-el absolute top-[12%] left-[7%] w-24 h-24 rounded-2xl opacity-40" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+    <div class="float-el absolute top-[65%] left-[4%] w-16 h-16 rounded-xl opacity-30" style="background:linear-gradient(135deg,#93734f,#c19a6b)"></div>
+    <div class="float-el absolute top-[18%] right-[6%] w-20 h-20 rounded-2xl opacity-35" style="background:linear-gradient(135deg,#3d5a4c,#5a8068)"></div>
+    <div class="float-el absolute top-[72%] right-[7%] w-14 h-14 rounded-xl opacity-25" style="background:linear-gradient(135deg,#2c3e50,#3498db)"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-[460px]">
+
+    <!-- Logo -->
+    <div class="text-center mb-7 fade-up">
+      <a href="/" class="inline-flex items-center gap-2 no-underline">
+        <div class="h-10 w-10 bg-[#00e054] rounded-md flex items-center justify-center">
+          <span class="text-[#14181c] font-bold text-base" style="font-family:'DM Serif Display',serif;">TW</span>
+        </div>
+        <span class="text-white font-semibold text-lg">TrackWeave</span>
+      </a>
+    </div>
+
+    <!-- Card -->
+    <div class="glass rounded-2xl p-8 shadow-2xl fade-up delay-1">
+      <div class="mb-5">
+        <h1 class="text-white text-2xl mb-1" style="font-family:'DM Serif Display',serif;">Create your account</h1>
+        <p class="text-[#678] text-sm">Join the music-lovers community — free forever.</p>
+      </div>
+
+      <!-- Error / success banners -->
+      <div id="errBanner" class="hidden mb-4 bg-red-900/30 border border-red-500/30 rounded-xl p-3 flex gap-2 items-start text-red-400 text-sm"></div>
+
+      <form id="regForm" novalidate>
+        <!-- Display name -->
+        <div class="mb-4 fade-up delay-1">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Display Name</label>
+          <input id="displayName" type="text" class="field" placeholder="Alex Rivera" autocomplete="name" />
+          <p class="err-msg hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <!-- Username -->
+        <div class="mb-4 fade-up delay-1">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Username</label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#456] text-sm select-none">@</span>
+            <input id="username" type="text" class="field" style="padding-left:28px" placeholder="alexrivera" autocomplete="username" />
+          </div>
+          <p class="err-msg hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-4 fade-up delay-2">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Email Address</label>
+          <input id="email" type="email" class="field" placeholder="alex@example.com" autocomplete="email" />
+          <p class="err-msg hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-1 fade-up delay-2">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Password</label>
+          <div class="relative">
+            <input id="password" type="password" class="field pr-12" placeholder="At least 8 characters" autocomplete="new-password" />
+            <button type="button" id="togglePwd" class="absolute right-4 top-1/2 -translate-y-1/2 text-[#456] hover:text-[#9ab] bg-transparent border-none cursor-pointer p-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Strength meter -->
+        <div id="strengthWrap" class="hidden mb-2">
+          <div class="flex gap-1 mb-1">
+            <div id="s1" class="strength-bar flex-1 bg-[#2c3440]"></div>
+            <div id="s2" class="strength-bar flex-1 bg-[#2c3440]"></div>
+            <div id="s3" class="strength-bar flex-1 bg-[#2c3440]"></div>
+            <div id="s4" class="strength-bar flex-1 bg-[#2c3440]"></div>
+          </div>
+          <p id="strengthLbl" class="text-xs text-[#456]"></p>
+        </div>
+
+        <!-- Password requirements -->
+        <div class="grid grid-cols-2 gap-1 mb-4">
+          <div class="req" id="req-len"><span class="req-dot"></span>8+ characters</div>
+          <div class="req" id="req-up"><span class="req-dot"></span>Uppercase letter</div>
+          <div class="req" id="req-num"><span class="req-dot"></span>Number</div>
+          <div class="req" id="req-sym"><span class="req-dot"></span>Symbol</div>
+        </div>
+
+        <!-- Confirm password -->
+        <div class="mb-5 fade-up delay-3">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Confirm Password</label>
+          <input id="confirmPwd" type="password" class="field" placeholder="Repeat password" autocomplete="new-password" />
+          <p class="err-msg hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <!-- Terms -->
+        <div class="flex items-start gap-3 mb-5 fade-up delay-3">
+          <div id="cbWrap" class="w-5 h-5 rounded-md border-2 border-[#2c3440] flex items-center justify-center cursor-pointer flex-shrink-0 mt-0.5 transition-all hover:border-[#00e054]">
+            <svg id="cbCheck" class="w-3 h-3 text-[#14181c] hidden" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <input id="terms" type="checkbox" class="sr-only" />
+          <label for="terms" class="text-[#678] text-sm cursor-pointer leading-relaxed" id="cbLabel">
+            I agree to the <a href="#" class="text-[#00e054] hover:underline">Terms of Service</a> and <a href="#" class="text-[#00e054] hover:underline">Privacy Policy</a>
+          </label>
+        </div>
+        <p id="termsErr" class="hidden text-red-400 text-xs -mt-3 mb-4"></p>
+
+        <button type="submit" id="submitBtn" class="btn fade-up delay-3">Create Account</button>
+      </form>
+
+      <p class="text-center text-[#678] text-sm mt-5">
+        Already have an account? <a href="/signin.html" class="text-[#00e054] hover:underline font-medium">Sign in</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Success overlay -->
+  <div id="successOverlay" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="glass rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl" style="animation:fadeUp .4s ease both">
+      <div class="w-16 h-16 bg-[#00e054] rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-[#14181c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h2 class="text-white text-xl mb-2" style="font-family:'DM Serif Display',serif;">You're in!</h2>
+      <p id="successMsg" class="text-[#9ab] text-sm mb-6"></p>
+      <a href="/signin.html" class="btn inline-block no-underline" style="text-decoration:none">Sign In to Continue →</a>
+    </div>
+  </div>
+
+  <script src="/api.js"></script>
+  <script>
+    // ── Checkbox toggle ───────────────────────────────────────────
+    const cbWrap = document.getElementById("cbWrap");
+    const cbCheck = document.getElementById("cbCheck");
+    const termsInput = document.getElementById("terms");
+    [cbWrap, document.getElementById("cbLabel")].forEach(el =>
+      el.addEventListener("click", () => {
+        termsInput.checked = !termsInput.checked;
+        cbWrap.style.background = termsInput.checked ? "#00e054" : "";
+        cbWrap.style.borderColor = termsInput.checked ? "#00e054" : "";
+        cbCheck.classList.toggle("hidden", !termsInput.checked);
+      })
+    );
+
+    // ── Password toggle ───────────────────────────────────────────
+    document.getElementById("togglePwd").addEventListener("click", () => {
+      const pwd = document.getElementById("password");
+      pwd.type = pwd.type === "password" ? "text" : "password";
+    });
+
+    // ── Strength meter ────────────────────────────────────────────
+    function calcStrength(v) {
+      let s = 0;
+      if (v.length >= 8) s++;
+      if (/[A-Z]/.test(v)) s++;
+      if (/[0-9]/.test(v)) s++;
+      if (/[^A-Za-z0-9]/.test(v)) s++;
+      return s;
+    }
+    const COLORS = ["#f87171","#fb923c","#facc15","#00e054"];
+    const LABELS = ["Weak","Fair","Good","Strong"];
+
+    document.getElementById("password").addEventListener("input", function() {
+      const v = this.value;
+      document.getElementById("strengthWrap").classList.toggle("hidden", !v);
+      const sc = calcStrength(v);
+      ["s1","s2","s3","s4"].forEach((id, i) => {
+        document.getElementById(id).style.background = i < sc ? COLORS[sc-1] : "#2c3440";
+      });
+      const lbl = document.getElementById("strengthLbl");
+      lbl.textContent = LABELS[sc-1] || "";
+      lbl.style.color = COLORS[sc-1] || "#456";
+
+      document.getElementById("req-len").classList.toggle("ok", v.length >= 8);
+      document.getElementById("req-up").classList.toggle("ok", /[A-Z]/.test(v));
+      document.getElementById("req-num").classList.toggle("ok", /[0-9]/.test(v));
+      document.getElementById("req-sym").classList.toggle("ok", /[^A-Za-z0-9]/.test(v));
+    });
+
+    // ── Validation helpers ────────────────────────────────────────
+    function fieldErr(id, msg) {
+      const el = document.getElementById(id);
+      el.classList.add("err");
+      el.closest("div").querySelector(".err-msg").textContent = msg;
+      el.closest("div").querySelector(".err-msg").classList.remove("hidden");
+    }
+    function clearFieldErr(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove("err");
+      const m = el.closest("div")?.querySelector(".err-msg");
+      if (m) m.classList.add("hidden");
+    }
+    ["displayName","username","email","password","confirmPwd"].forEach(id =>
+      document.getElementById(id)?.addEventListener("input", () => clearFieldErr(id))
+    );
+
+    function showErr(msg) {
+      const b = document.getElementById("errBanner");
+      b.textContent = msg;
+      b.classList.remove("hidden");
+    }
+    function hideErr() { document.getElementById("errBanner").classList.add("hidden"); }
+
+    // ── Submit ────────────────────────────────────────────────────
+    document.getElementById("regForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideErr();
+
+      const displayName = document.getElementById("displayName").value.trim();
+      const username    = document.getElementById("username").value.trim();
+      const email       = document.getElementById("email").value.trim();
+      const password    = document.getElementById("password").value;
+      const confirm     = document.getElementById("confirmPwd").value;
+      let valid = true;
+
+      if (!username) { fieldErr("username", "Username is required."); valid = false; }
+      else if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) { fieldErr("username", "3–30 chars, letters/numbers/underscores only."); valid = false; }
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr("email", "Enter a valid email."); valid = false; }
+
+      if (!password) { fieldErr("password", "Password is required."); valid = false; }
+      else if (calcStrength(password) < 2) { fieldErr("password", "Password is too weak."); valid = false; }
+
+      if (password !== confirm) { fieldErr("confirmPwd", "Passwords do not match."); valid = false; }
+
+      if (!termsInput.checked) {
+        document.getElementById("termsErr").textContent = "You must agree to the Terms of Service.";
+        document.getElementById("termsErr").classList.remove("hidden");
+        valid = false;
+      } else {
+        document.getElementById("termsErr").classList.add("hidden");
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "Creating account…";
+
+      try {
+        await API.register({ username, email, password, display_name: displayName || username });
+        document.getElementById("successMsg").textContent = `Welcome, ${displayName || username}! Your account @${username} is ready.`;
+        document.getElementById("successOverlay").classList.remove("hidden");
+      } catch (err) {
+        showErr(err.message || "Something went wrong. Please try again.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Feed — TrackWeave</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+    body { font-family:'DM Sans',sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation:fadeUp .4s ease both; }
+    .post-card { transition:border-color .2s; }
+    .post-card:hover { border-color:#456; }
+    .vote-btn { transition:color .15s,transform .15s; cursor:pointer; background:none; border:none; padding:4px; }
+    .vote-btn:hover { transform:scale(1.2); }
+    .vote-btn.up.active   { color:#00e054; }
+    .vote-btn.down.active { color:#f87171; }
+
+    .field {
+      background:#1e2329; border:1.5px solid #2c3440; color:#fff;
+      border-radius:8px; padding:11px 14px; width:100%; font-size:14px;
+      outline:none; transition:border-color .2s;
+    }
+    .field:focus  { border-color:#00e054; }
+    .field::placeholder { color:#456; }
+    textarea.field { resize:vertical; min-height:80px; }
+
+    .btn-green {
+      background:#00e054; color:#14181c; font-weight:600; border:none;
+      border-radius:8px; padding:10px 20px; font-size:14px; cursor:pointer;
+      transition:background .2s,transform .15s;
+    }
+    .btn-green:hover { background:#00ff5e; transform:translateY(-1px); }
+    .btn-green:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+    .tab { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; transition:background .2s,color .2s; color:#678; background:none; border:none; }
+    .tab.active { background:#2c3440; color:#fff; }
+    .tab:hover:not(.active) { color:#9ab; }
+
+    .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); z-index:50; align-items:center; justify-content:center; padding:16px; }
+    .modal-bg.open { display:flex; }
+
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#14181c; }
+    ::-webkit-scrollbar-thumb { background:#2c3440; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-[#14181c] text-[#9ab] min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="bg-[#1e2329] border-b border-[#2c3440] py-3 sticky top-0 z-40">
+    <div class="max-w-[1200px] mx-auto px-6 flex items-center justify-between gap-6 flex-wrap">
+      <a href="/" class="flex items-center gap-2 no-underline">
+        <div class="h-9 w-9 bg-[#00e054] rounded-md flex items-center justify-center">
+          <span class="text-[#14181c] font-bold text-sm" style="font-family:'DM Serif Display',serif;">TW</span>
+        </div>
+        <span class="text-white font-semibold">TrackWeave</span>
+      </a>
+      <div class="flex-1 max-w-[400px]">
+        <input type="text" placeholder="Search artists, albums…" class="field" style="padding:9px 14px;"/>
+      </div>
+      <div id="navAuth" class="flex items-center gap-4"></div>
+    </div>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <div class="max-w-[1200px] mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
+
+    <!-- LEFT COLUMN: Feed -->
+    <div>
+      <!-- Create post prompt -->
+      <div id="createPrompt" class="hidden bg-[#1e2329] border border-[#2c3440] rounded-xl p-4 flex items-center gap-3 mb-6 cursor-pointer hover:border-[#456] transition-colors" onclick="openModal()">
+        <div id="createAvatar" class="flex-shrink-0"></div>
+        <div class="flex-1 field py-2.5 text-[#456] text-sm pointer-events-none">Share a music thought, review, or track…</div>
+        <button class="btn-green text-sm px-4 py-2.5 flex-shrink-0">Post</button>
+      </div>
+
+      <!-- Sort tabs -->
+      <div class="flex items-center gap-2 mb-5">
+        <button class="tab active" id="tab-new"  onclick="setSort('new')">🕐 New</button>
+        <button class="tab"        id="tab-top"  onclick="setSort('top')">🔥 Top</button>
+      </div>
+
+      <!-- Posts -->
+      <div id="feed" class="space-y-3">
+        <div class="text-center py-16 text-[#456]">
+          <div class="inline-block w-8 h-8 border-2 border-[#00e054] border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p>Loading feed…</p>
+        </div>
+      </div>
+
+      <!-- Load more -->
+      <div class="text-center mt-6">
+        <button id="loadMoreBtn" class="hidden py-2.5 px-8 rounded-xl border border-[#2c3440] text-[#9ab] text-sm font-medium hover:border-[#456] hover:text-white transition-all cursor-pointer bg-transparent" onclick="loadMore()">Load more</button>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Sidebar -->
+    <div class="space-y-5">
+      <!-- About -->
+      <div class="bg-[#1e2329] border border-[#2c3440] rounded-xl p-5">
+        <h2 class="text-white font-semibold mb-2" style="font-family:'DM Serif Display',serif;">TrackWeave</h2>
+        <p class="text-[#678] text-sm leading-relaxed mb-4">The social network for music lovers. Log every listen, review what moves you, and connect with fellow audiophiles.</p>
+        <div class="grid grid-cols-2 gap-3 text-center text-xs mb-4">
+          <div class="bg-[#14181c] rounded-lg p-3"><span class="text-white font-bold text-lg block">412K</span>Members</div>
+          <div class="bg-[#14181c] rounded-lg p-3"><span class="text-white font-bold text-lg block">1.2M</span>Reviews</div>
+        </div>
+        <button onclick="openModal()" class="btn-green w-full text-sm py-2.5" id="sidebarPostBtn">Create Post</button>
+      </div>
+
+      <!-- Rules -->
+      <div class="bg-[#1e2329] border border-[#2c3440] rounded-xl p-5">
+        <h3 class="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Community Rules</h3>
+        <ol class="space-y-2 text-[#678] text-sm list-none">
+          <li class="flex gap-2"><span class="text-[#00e054] font-bold">1.</span> Be kind and respectful</li>
+          <li class="flex gap-2"><span class="text-[#00e054] font-bold">2.</span> No spam or self-promotion</li>
+          <li class="flex gap-2"><span class="text-[#00e054] font-bold">3.</span> Stay on topic — music only</li>
+          <li class="flex gap-2"><span class="text-[#00e054] font-bold">4.</span> Credit artists properly</li>
+          <li class="flex gap-2"><span class="text-[#00e054] font-bold">5.</span> No piracy links</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE POST MODAL -->
+  <div class="modal-bg" id="postModal">
+    <div class="bg-[#1e2329] rounded-2xl shadow-2xl w-full max-w-[580px] border border-[#2c3440]" style="animation:fadeUp .3s ease both">
+      <div class="flex items-center justify-between p-6 border-b border-[#2c3440]">
+        <h2 class="text-white font-semibold text-lg" style="font-family:'DM Serif Display',serif;">Create a Post</h2>
+        <button onclick="closeModal()" class="text-[#456] hover:text-[#9ab] transition-colors bg-transparent border-none cursor-pointer text-xl leading-none">&times;</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <!-- Type toggle -->
+        <div class="flex gap-2 bg-[#14181c] rounded-lg p-1">
+          <button id="typeText" class="flex-1 py-2 rounded-md text-sm font-medium transition-all bg-[#2c3440] text-white" onclick="setPostType('text')">📝 Text</button>
+          <button id="typeLink" class="flex-1 py-2 rounded-md text-sm font-medium transition-all text-[#678]" onclick="setPostType('link')">🔗 Link</button>
+        </div>
+
+        <div>
+          <input id="postTitle" type="text" class="field" placeholder="Title — what's on your mind?" maxlength="300"/>
+          <p class="text-xs text-[#456] text-right mt-1"><span id="titleCount">0</span>/300</p>
+        </div>
+
+        <textarea id="postBody" class="field" placeholder="Add more context, lyrics, or your review…" maxlength="40000"></textarea>
+
+        <div id="linkWrap" class="hidden">
+          <input id="postLink" type="url" class="field" placeholder="https://open.spotify.com/…"/>
+        </div>
+
+        <div id="postErr" class="hidden text-red-400 text-sm"></div>
+
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="py-2.5 px-5 rounded-lg border border-[#2c3440] text-[#9ab] text-sm hover:border-[#456] transition-all cursor-pointer bg-transparent">Cancel</button>
+          <button id="submitPostBtn" onclick="submitPost()" class="btn-green text-sm px-6">Post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/api.js"></script>
+  <script>
+    let currentSort = "new";
+    let currentSkip = 0;
+    const PAGE_SIZE = 20;
+    let allPosts = [];
+
+    // ── Init ──────────────────────────────────────────────────────
+    (async () => {
+      await initAuth();
+      const user = Auth.getUser();
+      if (user) {
+        document.getElementById("createPrompt").classList.remove("hidden");
+        document.getElementById("createAvatar").innerHTML = avatarEl(user, 36);
+      }
+      loadFeed(true);
+    })();
+
+    // ── Feed loading ──────────────────────────────────────────────
+    async function loadFeed(reset = false) {
+      if (reset) { currentSkip = 0; allPosts = []; }
+      try {
+        const posts = await API.getPosts(currentSkip, currentSort);
+        allPosts = reset ? posts : [...allPosts, ...posts];
+        renderFeed(reset);
+        currentSkip += posts.length;
+        document.getElementById("loadMoreBtn").classList.toggle("hidden", posts.length < PAGE_SIZE);
+      } catch (err) {
+        document.getElementById("feed").innerHTML = `<div class="text-center py-12 text-red-400">Failed to load feed: ${err.message}</div>`;
+      }
+    }
+
+    function loadMore() { loadFeed(false); }
+
+    function setSort(s) {
+      currentSort = s;
+      document.getElementById("tab-new").classList.toggle("active", s === "new");
+      document.getElementById("tab-top").classList.toggle("active", s === "top");
+      loadFeed(true);
+    }
+
+    // ── Render ────────────────────────────────────────────────────
+    function renderFeed(reset) {
+      const feed = document.getElementById("feed");
+      if (allPosts.length === 0) {
+        feed.innerHTML = `<div class="text-center py-16 text-[#456]">
+          <p class="text-4xl mb-3">🎵</p>
+          <p class="text-lg text-[#678] mb-2">No posts yet</p>
+          <p class="text-sm">Be the first to share something!</p>
+        </div>`;
+        return;
+      }
+      if (reset) feed.innerHTML = "";
+      allPosts.forEach((p, i) => {
+        if (!reset && i < currentSkip - PAGE_SIZE) return;
+        const card = document.createElement("div");
+        card.className = "post-card bg-[#1e2329] border border-[#2c3440] rounded-xl overflow-hidden fade-up";
+        card.style.animationDelay = `${(i % PAGE_SIZE) * 0.04}s`;
+        card.innerHTML = postCardHTML(p);
+        feed.appendChild(card);
+      });
+    }
+
+    function postCardHTML(p) {
+      const upActive   = p.user_vote === 1  ? "active" : "";
+      const downActive = p.user_vote === -1 ? "active" : "";
+      const scoreColor = p.score > 0 ? "text-[#00e054]" : p.score < 0 ? "text-[#f87171]" : "text-[#678]";
+      return `
+        <div class="flex">
+          <!-- Vote sidebar -->
+          <div class="flex flex-col items-center gap-1 px-3 py-4 bg-[#14181c] border-r border-[#2c3440]">
+            <button class="vote-btn up ${upActive}" onclick="vote(event,${p.id},'post',1)" title="Upvote">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+              </svg>
+            </button>
+            <span class="text-xs font-bold ${scoreColor}" id="score-post-${p.id}">${p.score}</span>
+            <button class="vote-btn down ${downActive}" onclick="vote(event,${p.id},'post',-1)" title="Downvote">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Content -->
+          <div class="flex-1 p-4">
+            <div class="flex items-center gap-2 mb-2 text-xs text-[#456]">
+              ${avatarEl(p.author, 20)}
+              <a href="/profile.html?u=${p.author.username}" class="text-[#9ab] hover:text-white no-underline font-medium">@${p.author.username}</a>
+              <span>•</span>
+              <span>${timeAgo(p.created_at)}</span>
+            </div>
+            <a href="/post.html?id=${p.id}" class="no-underline">
+              <h3 class="text-white font-semibold text-base leading-snug hover:text-[#00e054] transition-colors mb-1">${escapeHtml(p.title)}</h3>
+            </a>
+            ${p.body ? `<p class="text-[#678] text-sm leading-relaxed line-clamp-3 mb-3">${escapeHtml(p.body)}</p>` : ""}
+            ${p.link_url ? `<a href="${p.link_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[#00e054] text-xs hover:underline mb-3">🔗 ${p.link_url.slice(0,60)}${p.link_url.length>60?"…":""}</a>` : ""}
+            <div class="flex items-center gap-4 text-xs text-[#456]">
+              <a href="/post.html?id=${p.id}" class="flex items-center gap-1.5 hover:text-[#9ab] transition-colors no-underline">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                ${p.comment_count} comment${p.comment_count !== 1 ? "s" : ""}
+              </a>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── Voting ────────────────────────────────────────────────────
+    async function vote(e, id, type, dir) {
+      e.stopPropagation();
+      if (!Auth.isLoggedIn()) { window.location.href = "/signin.html"; return; }
+
+      const post = allPosts.find(p => p.id === id);
+      if (!post) return;
+
+      // Toggle off if same direction
+      const newDir = post.user_vote === dir ? 0 : dir;
+
+      try {
+        const result = await API.vote({ direction: newDir, post_id: id });
+        post.user_vote = newDir === 0 ? null : newDir;
+        post.score = result.new_score;
+
+        // Update DOM
+        const card = e.target.closest(".post-card");
+        card.querySelector(`.vote-btn.up`).classList.toggle("active", newDir === 1);
+        card.querySelector(`.vote-btn.down`).classList.toggle("active", newDir === -1);
+        const scoreEl = document.getElementById(`score-post-${id}`);
+        scoreEl.textContent = result.new_score;
+        scoreEl.className = `text-xs font-bold ${result.new_score > 0 ? "text-[#00e054]" : result.new_score < 0 ? "text-[#f87171]" : "text-[#678]"}`;
+      } catch (err) {
+        if (err.message.includes("401")) window.location.href = "/signin.html";
+      }
+    }
+
+    // ── Create post modal ─────────────────────────────────────────
+    let postType = "text";
+    function openModal() {
+      if (!Auth.isLoggedIn()) { window.location.href = "/signin.html"; return; }
+      document.getElementById("postModal").classList.add("open");
+      document.getElementById("postTitle").focus();
+    }
+    function closeModal() {
+      document.getElementById("postModal").classList.remove("open");
+      document.getElementById("postTitle").value = "";
+      document.getElementById("postBody").value = "";
+      document.getElementById("postLink").value = "";
+      document.getElementById("postErr").classList.add("hidden");
+    }
+    function setPostType(t) {
+      postType = t;
+      document.getElementById("typeText").className = `flex-1 py-2 rounded-md text-sm font-medium transition-all ${t==="text" ? "bg-[#2c3440] text-white" : "text-[#678]"}`;
+      document.getElementById("typeLink").className = `flex-1 py-2 rounded-md text-sm font-medium transition-all ${t==="link" ? "bg-[#2c3440] text-white" : "text-[#678]"}`;
+      document.getElementById("linkWrap").classList.toggle("hidden", t !== "link");
+    }
+
+    document.getElementById("postTitle").addEventListener("input", function() {
+      document.getElementById("titleCount").textContent = this.value.length;
+    });
+
+    async function submitPost() {
+      const title   = document.getElementById("postTitle").value.trim();
+      const body    = document.getElementById("postBody").value.trim();
+      const linkUrl = document.getElementById("postLink").value.trim();
+      const errEl   = document.getElementById("postErr");
+
+      if (!title) { errEl.textContent = "Title is required."; errEl.classList.remove("hidden"); return; }
+      if (postType === "link" && !linkUrl) { errEl.textContent = "Please enter a URL."; errEl.classList.remove("hidden"); return; }
+      if (postType === "text" && !body) { errEl.textContent = "Post body is required for text posts."; errEl.classList.remove("hidden"); return; }
+      errEl.classList.add("hidden");
+
+      const btn = document.getElementById("submitPostBtn");
+      btn.disabled = true;
+      btn.textContent = "Posting…";
+
+      try {
+        const post = await API.createPost({
+          title,
+          body:     postType === "text" ? body : null,
+          link_url: postType === "link" ? linkUrl : null,
+        });
+        closeModal();
+        loadFeed(true);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Post";
+      }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById("postModal").addEventListener("click", function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ── Utility ───────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+  </script>
+</body>
+</html>

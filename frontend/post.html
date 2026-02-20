@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Post — TrackWeave</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+    body { font-family:'DM Sans',sans-serif; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .fade-up { animation:fadeUp .35s ease both; }
+
+    .field {
+      background:#1e2329; border:1.5px solid #2c3440; color:#fff;
+      border-radius:8px; padding:11px 14px; width:100%; font-size:14px;
+      outline:none; transition:border-color .2s;
+    }
+    .field:focus  { border-color:#00e054; }
+    .field::placeholder { color:#456; }
+    textarea.field { resize:vertical; min-height:90px; }
+
+    .btn-green {
+      background:#00e054; color:#14181c; font-weight:600; border:none;
+      border-radius:8px; padding:9px 18px; font-size:13px; cursor:pointer;
+      transition:background .2s,transform .15s;
+    }
+    .btn-green:hover { background:#00ff5e; transform:translateY(-1px); }
+    .btn-green:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+    .vote-btn { cursor:pointer; background:none; border:none; padding:3px; color:#456; transition:color .15s,transform .15s; }
+    .vote-btn:hover { transform:scale(1.2); }
+    .vote-btn.up.active   { color:#00e054; }
+    .vote-btn.down.active { color:#f87171; }
+
+    .comment-thread { border-left:2px solid #2c3440; margin-left:20px; padding-left:16px; }
+
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#14181c; }
+    ::-webkit-scrollbar-thumb { background:#2c3440; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-[#14181c] text-[#9ab] min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="bg-[#1e2329] border-b border-[#2c3440] py-3 sticky top-0 z-40">
+    <div class="max-w-[900px] mx-auto px-6 flex items-center justify-between gap-6">
+      <a href="/" class="flex items-center gap-2 no-underline">
+        <div class="h-9 w-9 bg-[#00e054] rounded-md flex items-center justify-center flex-shrink-0">
+          <span class="text-[#14181c] font-bold text-sm" style="font-family:'DM Serif Display',serif;">TW</span>
+        </div>
+        <span class="text-white font-semibold hidden sm:inline">TrackWeave</span>
+      </a>
+      <a href="/feed.html" class="text-[#9ab] text-sm hover:text-white transition-colors no-underline">← Back to Feed</a>
+      <div id="navAuth" class="flex items-center gap-3"></div>
+    </div>
+  </nav>
+
+  <div class="max-w-[900px] mx-auto px-6 py-8" id="pageContent">
+    <!-- Loading -->
+    <div class="text-center py-20 text-[#456]">
+      <div class="inline-block w-8 h-8 border-2 border-[#00e054] border-t-transparent rounded-full animate-spin mb-3"></div>
+      <p>Loading post…</p>
+    </div>
+  </div>
+
+  <script src="/api.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const postId = parseInt(params.get("id"));
+    let postData = null;
+
+    (async () => {
+      await initAuth();
+      if (!postId) { showError("Invalid post URL."); return; }
+      try {
+        postData = await API.getPost(postId);
+        document.title = `${postData.title} — TrackWeave`;
+        render();
+        loadComments();
+      } catch (err) {
+        showError(err.message);
+      }
+    })();
+
+    function showError(msg) {
+      document.getElementById("pageContent").innerHTML = `<div class="text-center py-20 text-red-400">${msg}</div>`;
+    }
+
+    // ── Render post ───────────────────────────────────────────────
+    function render() {
+      const p = postData;
+      const upActive   = p.user_vote === 1  ? "active" : "";
+      const downActive = p.user_vote === -1 ? "active" : "";
+      const scoreColor = p.score > 0 ? "text-[#00e054]" : p.score < 0 ? "text-[#f87171]" : "text-white";
+      const isOwner = Auth.getUser()?.id === p.author.id;
+
+      document.getElementById("pageContent").innerHTML = `
+        <!-- Post card -->
+        <div class="bg-[#1e2329] border border-[#2c3440] rounded-2xl overflow-hidden mb-6 fade-up">
+          <div class="flex">
+            <!-- Vote -->
+            <div class="flex flex-col items-center gap-2 px-4 py-5 bg-[#14181c] border-r border-[#2c3440]">
+              <button class="vote-btn up ${upActive}" id="post-up" onclick="votePost(1)" title="Upvote">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <span class="text-sm font-bold ${scoreColor}" id="post-score">${p.score}</span>
+              <button class="vote-btn down ${downActive}" id="post-down" onclick="votePost(-1)" title="Downvote">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+            <!-- Body -->
+            <div class="flex-1 p-6">
+              <div class="flex items-center gap-2 mb-3 text-xs text-[#456]">
+                ${avatarEl(p.author, 22)}
+                <a href="/profile.html?u=${p.author.username}" class="text-[#9ab] hover:text-white no-underline font-medium">@${p.author.username}</a>
+                <span>•</span>
+                <span>${timeAgo(p.created_at)}</span>
+                ${p.created_at !== p.updated_at ? '<span class="italic">(edited)</span>' : ""}
+              </div>
+              <h1 class="text-white text-xl font-bold leading-snug mb-3" style="font-family:'DM Serif Display',serif;">${escapeHtml(p.title)}</h1>
+              ${p.body ? `<p class="text-[#9ab] leading-relaxed mb-4 whitespace-pre-wrap">${escapeHtml(p.body)}</p>` : ""}
+              ${p.link_url ? `<a href="${p.link_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-[#00e054] text-sm hover:underline mb-4 break-all">🔗 ${p.link_url}</a>` : ""}
+              ${isOwner ? `
+              <div class="flex gap-3 pt-3 border-t border-[#2c3440]">
+                <button onclick="deletePost()" class="text-xs text-[#f87171] hover:underline bg-transparent border-none cursor-pointer p-0">Delete post</button>
+              </div>` : ""}
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment box -->
+        <div id="commentBox" class="${Auth.isLoggedIn() ? '' : 'hidden'} bg-[#1e2329] border border-[#2c3440] rounded-2xl p-5 mb-6 fade-up">
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 mt-1">${avatarEl(Auth.getUser(), 30)}</div>
+            <div class="flex-1">
+              <textarea id="commentInput" class="field mb-3" placeholder="What do you think?"></textarea>
+              <div class="flex justify-between items-center">
+                <p id="commentErr" class="text-red-400 text-xs hidden"></p>
+                <button id="commentBtn" onclick="submitComment(null)" class="btn-green ml-auto">Comment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${!Auth.isLoggedIn() ? `<div class="bg-[#1e2329] border border-[#2c3440] rounded-2xl p-5 mb-6 text-center text-[#678] text-sm">
+          <a href="/signin.html" class="text-[#00e054] hover:underline font-medium">Sign in</a> to leave a comment.
+        </div>` : ""}
+
+        <!-- Comments -->
+        <div class="mb-2">
+          <h2 class="text-white font-semibold mb-4">${p.comment_count} Comment${p.comment_count !== 1 ? "s" : ""}</h2>
+          <div id="commentsList" class="space-y-4">
+            <div class="text-center py-8 text-[#456]">
+              <div class="inline-block w-5 h-5 border-2 border-[#456] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Vote on post ──────────────────────────────────────────────
+    async function votePost(dir) {
+      if (!Auth.isLoggedIn()) { window.location.href = "/signin.html"; return; }
+      const newDir = postData.user_vote === dir ? 0 : dir;
+      try {
+        const result = await API.vote({ direction: newDir, post_id: postId });
+        postData.user_vote = newDir === 0 ? null : newDir;
+        postData.score = result.new_score;
+        document.getElementById("post-up").classList.toggle("active", newDir === 1);
+        document.getElementById("post-down").classList.toggle("active", newDir === -1);
+        const scoreEl = document.getElementById("post-score");
+        scoreEl.textContent = result.new_score;
+        scoreEl.className = `text-sm font-bold ${result.new_score > 0 ? "text-[#00e054]" : result.new_score < 0 ? "text-[#f87171]" : "text-white"}`;
+      } catch {}
+    }
+
+    async function deletePost() {
+      if (!confirm("Delete this post? This can't be undone.")) return;
+      try { await API.deletePost(postId); window.location.href = "/feed.html"; } catch (err) { alert(err.message); }
+    }
+
+    // ── Comments ──────────────────────────────────────────────────
+    async function loadComments() {
+      try {
+        const comments = await API.getComments(postId);
+        renderComments(comments);
+      } catch (err) {
+        document.getElementById("commentsList").innerHTML = `<p class="text-red-400 text-sm">${err.message}</p>`;
+      }
+    }
+
+    function renderComments(comments) {
+      const list = document.getElementById("commentsList");
+      if (comments.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-[#456]"><p class="text-3xl mb-2">💬</p><p>No comments yet. Be the first!</p></div>`;
+        return;
+      }
+      list.innerHTML = comments.map(c => commentHTML(c, 0)).join("");
+    }
+
+    function commentHTML(c, depth) {
+      const upActive   = c.user_vote === 1  ? "active" : "";
+      const downActive = c.user_vote === -1 ? "active" : "";
+      const scoreColor = c.score > 0 ? "text-[#00e054]" : c.score < 0 ? "text-[#f87171]" : "text-[#678]";
+      const isOwner = Auth.getUser()?.id === c.author.id;
+      const hasReplies = c.replies && c.replies.length > 0;
+
+      return `
+        <div class="fade-up" id="comment-${c.id}">
+          <div class="flex gap-3">
+            <div class="flex-shrink-0">
+              <a href="/profile.html?u=${c.author.username}">${avatarEl(c.author, 28)}</a>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1 text-xs text-[#456]">
+                <a href="/profile.html?u=${c.author.username}" class="text-[#9ab] hover:text-white no-underline font-medium">@${c.author.username}</a>
+                <span>•</span>
+                <span>${timeAgo(c.created_at)}</span>
+              </div>
+              <p class="text-[#9ab] text-sm leading-relaxed mb-2 whitespace-pre-wrap" id="comment-body-${c.id}">${escapeHtml(c.body)}</p>
+              <div class="flex items-center gap-3 text-xs text-[#456]">
+                <button class="vote-btn up ${upActive}" onclick="voteComment(${c.id},1)" title="Upvote">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <span class="${scoreColor}" id="comment-score-${c.id}">${c.score}</span>
+                <button class="vote-btn down ${downActive}" onclick="voteComment(${c.id},-1)" title="Downvote">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                ${Auth.isLoggedIn() ? `<button onclick="toggleReply(${c.id})" class="hover:text-[#9ab] transition-colors bg-transparent border-none cursor-pointer p-0 ml-1">↩ Reply</button>` : ""}
+                ${isOwner ? `<button onclick="deleteComment(${c.id})" class="text-[#f87171] hover:underline bg-transparent border-none cursor-pointer p-0 ml-auto">Delete</button>` : ""}
+              </div>
+              <!-- Inline reply box -->
+              <div id="reply-box-${c.id}" class="hidden mt-3">
+                <textarea id="reply-input-${c.id}" class="field text-sm" style="min-height:70px" placeholder="Write a reply…"></textarea>
+                <div class="flex gap-2 mt-2">
+                  <button onclick="toggleReply(${c.id})" class="py-1.5 px-4 rounded-lg border border-[#2c3440] text-[#678] text-xs hover:border-[#456] transition-all cursor-pointer bg-transparent">Cancel</button>
+                  <button onclick="submitComment(${c.id})" class="btn-green text-xs px-4 py-1.5">Reply</button>
+                </div>
+              </div>
+              <!-- Nested replies -->
+              ${hasReplies && depth < 4 ? `<div class="comment-thread mt-3 space-y-3">${c.replies.map(r => commentHTML(r, depth+1)).join("")}</div>` : ""}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── Vote on comment ───────────────────────────────────────────
+    const commentVotes = {};
+    async function voteComment(id, dir) {
+      if (!Auth.isLoggedIn()) { window.location.href = "/signin.html"; return; }
+      const currentVote = commentVotes[id] ?? null;
+      const newDir = currentVote === dir ? 0 : dir;
+      try {
+        const result = await API.vote({ direction: newDir, comment_id: id });
+        commentVotes[id] = newDir === 0 ? null : newDir;
+        const el = document.getElementById(`comment-${id}`);
+        el.querySelectorAll(".vote-btn.up").forEach(b  => b.classList.toggle("active", newDir === 1));
+        el.querySelectorAll(".vote-btn.down").forEach(b => b.classList.toggle("active", newDir === -1));
+        const scoreEl = document.getElementById(`comment-score-${id}`);
+        scoreEl.textContent = result.new_score;
+        scoreEl.className = result.new_score > 0 ? "text-[#00e054]" : result.new_score < 0 ? "text-[#f87171]" : "text-[#678]";
+      } catch {}
+    }
+
+    // ── Submit comment / reply ────────────────────────────────────
+    async function submitComment(parentId) {
+      const inputId = parentId ? `reply-input-${parentId}` : "commentInput";
+      const body = document.getElementById(inputId).value.trim();
+      const errEl = document.getElementById("commentErr");
+
+      if (!body) {
+        if (errEl) { errEl.textContent = "Comment cannot be empty."; errEl.classList.remove("hidden"); }
+        return;
+      }
+      if (errEl) errEl.classList.add("hidden");
+
+      const btnId = parentId ? null : "commentBtn";
+      const btn   = btnId ? document.getElementById(btnId) : null;
+      if (btn) { btn.disabled = true; btn.textContent = "Posting…"; }
+
+      try {
+        await API.createComment(postId, { body, parent_id: parentId });
+        document.getElementById(inputId).value = "";
+        if (parentId) { document.getElementById(`reply-box-${parentId}`).classList.add("hidden"); }
+        // Reload comments
+        const comments = await API.getComments(postId);
+        renderComments(comments);
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove("hidden"); }
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Comment"; }
+      }
+    }
+
+    function toggleReply(id) {
+      const box = document.getElementById(`reply-box-${id}`);
+      box.classList.toggle("hidden");
+      if (!box.classList.contains("hidden")) document.getElementById(`reply-input-${id}`).focus();
+    }
+
+    async function deleteComment(id) {
+      if (!confirm("Delete this comment?")) return;
+      try {
+        await API.deleteComment(id);
+        const comments = await API.getComments(postId);
+        renderComments(comments);
+      } catch (err) { alert(err.message); }
+    }
+
+    // ── Utility ───────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+  </script>
+</body>
+</html>

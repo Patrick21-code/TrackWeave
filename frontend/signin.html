@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — TrackWeave</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
+    body { font-family:'DM Sans',sans-serif; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes float  { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-10px) rotate(-2deg)} }
+    @keyframes shake  { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+
+    .fade-up { animation:fadeUp .55s ease both; }
+    .delay-1 { animation-delay:.1s; }
+    .delay-2 { animation-delay:.2s; }
+    .float-el { animation:float 7s ease-in-out infinite; }
+    .float-el:nth-child(2) { animation-delay:-3s; }
+    .shake { animation:shake .35s ease; }
+
+    .field {
+      background:#1e2329; border:1.5px solid #2c3440; color:#fff;
+      border-radius:10px; padding:13px 16px; width:100%; font-size:14px;
+      outline:none; transition:border-color .2s,box-shadow .2s;
+    }
+    .field:focus { border-color:#00e054; box-shadow:0 0 0 3px rgba(0,224,84,.12); }
+    .field.err   { border-color:#f87171; box-shadow:0 0 0 3px rgba(248,113,113,.12); }
+    .field::placeholder { color:#456; }
+
+    .btn {
+      background:#00e054; color:#14181c; font-weight:600; border:none;
+      border-radius:10px; padding:14px; width:100%; font-size:15px;
+      cursor:pointer; transition:background .2s,transform .15s,box-shadow .2s;
+    }
+    .btn:hover  { background:#00ff5e; transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,224,84,.3); }
+    .btn:active { transform:none; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+    .glass { background:rgba(30,35,41,.88); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.06); }
+    .divider { display:flex; align-items:center; gap:12px; color:#456; font-size:12px; margin:18px 0; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:#2c3440; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative"
+      style="background:radial-gradient(circle at 70% 30%,rgba(0,224,84,.06) 0%,transparent 50%),radial-gradient(circle at 20% 80%,rgba(0,224,84,.04) 0%,transparent 40%),#14181c;">
+
+  <!-- Decorative -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" style="z-index:0">
+    <div class="float-el absolute top-[18%] right-[7%] w-24 h-24 rounded-2xl opacity-40" style="background:linear-gradient(135deg,#6b8e7e,#8eb99c)"></div>
+    <div class="float-el absolute top-[68%] right-[5%] w-16 h-16 rounded-xl opacity-30" style="background:linear-gradient(135deg,#4a5568,#6b7a90)"></div>
+    <div class="float-el absolute top-[22%] left-[6%] w-20 h-20 rounded-2xl opacity-35" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+    <div class="float-el absolute top-[70%] left-[8%] w-14 h-14 rounded-xl opacity-25" style="background:linear-gradient(135deg,#93734f,#c19a6b)"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-[420px]">
+
+    <!-- Logo -->
+    <div class="text-center mb-7 fade-up">
+      <a href="/" class="inline-flex items-center gap-2 no-underline">
+        <div class="h-10 w-10 bg-[#00e054] rounded-md flex items-center justify-center">
+          <span class="text-[#14181c] font-bold text-base" style="font-family:'DM Serif Display',serif;">TW</span>
+        </div>
+        <span class="text-white font-semibold text-lg">TrackWeave</span>
+      </a>
+    </div>
+
+    <!-- Card -->
+    <div class="glass rounded-2xl p-8 shadow-2xl fade-up delay-1" id="card">
+      <div class="mb-6">
+        <h1 class="text-white text-2xl mb-1" style="font-family:'DM Serif Display',serif;">Welcome back</h1>
+        <p class="text-[#678] text-sm">Sign in to continue tracking your music.</p>
+      </div>
+
+      <!-- Banners -->
+      <div id="errBanner" class="hidden mb-4 bg-red-900/30 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm"></div>
+      <div id="okBanner"  class="hidden mb-4 bg-green-900/30 border border-green-500/30 rounded-xl p-3 text-green-400 text-sm"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-4 fade-up delay-1">
+          <label class="block text-[#9ab] text-xs font-medium mb-1.5 uppercase tracking-wider">Email or Username</label>
+          <input id="identifier" type="text" class="field" placeholder="alex@example.com or @alexrivera" autocomplete="username"/>
+          <p id="idErr" class="hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <div class="mb-2 fade-up delay-2">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[#9ab] text-xs font-medium uppercase tracking-wider">Password</label>
+            <a href="#" class="text-[#00e054] text-xs hover:underline">Forgot password?</a>
+          </div>
+          <div class="relative">
+            <input id="password" type="password" class="field pr-12" placeholder="Your password" autocomplete="current-password"/>
+            <button type="button" id="togglePwd" class="absolute right-4 top-1/2 -translate-y-1/2 text-[#456] hover:text-[#9ab] bg-transparent border-none cursor-pointer p-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+          <p id="pwdErr" class="hidden text-red-400 text-xs mt-1"></p>
+        </div>
+
+        <!-- Remember me -->
+        <div class="flex items-center gap-3 mb-6 mt-4 fade-up delay-2">
+          <div id="remWrap" class="w-5 h-5 rounded-md border-2 border-[#2c3440] flex items-center justify-center cursor-pointer transition-all hover:border-[#00e054] flex-shrink-0">
+            <svg id="remCheck" class="w-3 h-3 text-[#14181c] hidden" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <input id="remember" type="checkbox" class="sr-only"/>
+          <label id="remLabel" for="remember" class="text-[#678] text-sm cursor-pointer">Keep me signed in</label>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn fade-up delay-2">Sign In</button>
+      </form>
+
+      <div class="divider">OR</div>
+
+      <a href="/register.html" class="block text-center py-3.5 rounded-xl border border-[#2c3440] text-[#9ab] text-sm font-medium hover:border-[#00e054] hover:text-white transition-all duration-200 no-underline">
+        Create a free account
+      </a>
+    </div>
+  </div>
+
+  <script src="/api.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (Auth.isLoggedIn()) window.location.href = "/feed.html";
+
+    // ── Checkbox ──────────────────────────────────────────────────
+    const remWrap  = document.getElementById("remWrap");
+    const remCheck = document.getElementById("remCheck");
+    const remInput = document.getElementById("remember");
+    [remWrap, document.getElementById("remLabel")].forEach(el =>
+      el.addEventListener("click", () => {
+        remInput.checked = !remInput.checked;
+        remWrap.style.background  = remInput.checked ? "#00e054" : "";
+        remWrap.style.borderColor = remInput.checked ? "#00e054" : "";
+        remCheck.classList.toggle("hidden", !remInput.checked);
+      })
+    );
+
+    // ── Password toggle ───────────────────────────────────────────
+    document.getElementById("togglePwd").addEventListener("click", () => {
+      const pwd = document.getElementById("password");
+      pwd.type = pwd.type === "password" ? "text" : "password";
+    });
+
+    // ── Submit ────────────────────────────────────────────────────
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      document.getElementById("errBanner").classList.add("hidden");
+      document.getElementById("idErr").classList.add("hidden");
+      document.getElementById("pwdErr").classList.add("hidden");
+
+      const identifier = document.getElementById("identifier").value.trim().replace(/^@/, "");
+      const password   = document.getElementById("password").value;
+
+      if (!identifier) {
+        document.getElementById("idErr").textContent = "Please enter your email or username.";
+        document.getElementById("idErr").classList.remove("hidden");
+        document.getElementById("identifier").classList.add("err");
+        return;
+      }
+      if (!password) {
+        document.getElementById("pwdErr").textContent = "Please enter your password.";
+        document.getElementById("pwdErr").classList.remove("hidden");
+        document.getElementById("password").classList.add("err");
+        return;
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "Signing in…";
+
+      try {
+        const tokens = await API.login({ identifier, password });
+        Auth.save(tokens);
+        const user = await API.me();
+        Auth.saveUser(user);
+        window.location.href = "/feed.html";
+      } catch (err) {
+        document.getElementById("errBanner").textContent = err.message || "Incorrect credentials. Please try again.";
+        document.getElementById("errBanner").classList.remove("hidden");
+        document.getElementById("card").classList.add("shake");
+        setTimeout(() => document.getElementById("card").classList.remove("shake"), 400);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
+  </script>
+</body>
+</html>
