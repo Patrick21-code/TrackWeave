@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from backend.core.database import get_db
 from backend.core.security import decode_token
@@ -33,10 +34,12 @@ def get_current_user(
 
 
 def get_current_user_optional(
-    token: str = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)),
     db: Session = Depends(get_db),
-) -> User | None:
+) -> Optional[User]:
     """Like get_current_user but returns None instead of raising for public routes."""
+    if not token:
+        return None
     try:
         return get_current_user(token, db)
     except HTTPException:

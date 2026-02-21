@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import Optional
 
 from backend.core.database import get_db
 from backend.core.deps import get_current_user
+from backend.core.security import decode_token
 from backend.models.user import User
 from backend.models.post import Post
 from backend.models.comment import Comment
@@ -12,6 +13,21 @@ from backend.models.vote import Vote
 from backend.schemas.post import PostCreate, PostUpdate, PostOut
 
 router = APIRouter()
+
+# Optional auth: reads the token if present but never raises a 401
+_optional_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+def _optional_user(
+    token: Optional[str] = Depends(_optional_oauth2),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if not token:
+        return None
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access":
+        return None
+    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    return user if user and user.is_active else None
 
 
 # ── Shared helper: attach computed fields ────────────────────────────────────
@@ -40,7 +56,7 @@ def list_posts(
     limit: int = Query(20, ge=1, le=100),
     sort:  str = Query("new", pattern="^(new|top)$"),
     db:    Session = Depends(get_db),
-    current_user: User | None = None,
+    current_user: Optional[User] = Depends(_optional_user),
 ):
     query = db.query(Post).filter(Post.is_deleted == False)
     posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
@@ -78,7 +94,7 @@ def create_post(
 def get_post(
     post_id: int,
     db:      Session = Depends(get_db),
-    current_user: User | None = None,
+    current_user: Optional[User] = Depends(_optional_user),
 ):
     post = db.query(Post).filter(Post.id == post_id, Post.is_deleted == False).first()
     if not post:

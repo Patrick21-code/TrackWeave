@@ -8,6 +8,7 @@ from backend.models.user import User
 from backend.models.post import Post
 from backend.models.comment import Comment
 from backend.schemas.comment import CommentCreate, CommentUpdate, CommentOut
+from backend.routers.posts import _optional_user
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ def _enrich_comment(comment: Comment, current_user: Optional[User]) -> dict:
 def get_comments_for_post(
     post_id: int,
     db:      Session = Depends(get_db),
-    current_user: User | None = None,
+    current_user: Optional[User] = Depends(_optional_user),
 ):
     post = db.query(Post).filter(Post.id == post_id, Post.is_deleted == False).first()
     if not post:

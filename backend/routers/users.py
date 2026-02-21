@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
+from typing import Optional
 import base64, imghdr
 
 from backend.core.database import get_db
@@ -8,7 +9,7 @@ from backend.models.user import User
 from backend.models.post import Post
 from backend.schemas.user import UserPublic, UserPrivate, UserProfileUpdate
 from backend.schemas.post import PostOut
-from backend.routers.posts import _enrich_post   # shared helper
+from backend.routers.posts import _enrich_post, _optional_user
 
 router = APIRouter()
 
@@ -72,7 +73,7 @@ def user_posts(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: User | None = None,
+    current_user: Optional[User] = Depends(_optional_user),
 ):
     user = db.query(User).filter(User.username == username.lower()).first()
     if not user:
